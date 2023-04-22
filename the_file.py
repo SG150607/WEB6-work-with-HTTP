@@ -27,7 +27,6 @@ json_response = response.json()
 
 pt_info = "{0},home".format(address_ll)
 ll_sum = [float(address_ll.split(",")[0]), float(address_ll.split(",")[1])]
-
 for organiz_num in range(10):
     organization = json_response["features"][organiz_num]
     org_name = organization["properties"]["CompanyMetaData"]["name"]
@@ -46,12 +45,16 @@ for organiz_num in range(10):
             pt_param = "pm2gnl"
         else:
             pt_param = "pm2grl"
+    else:
+        pt_param = "pm2grl"
 
+    ll_sum[0] += float(org_point.split(',')[0])
+    ll_sum[1] += float(org_point.split(',')[1])
     pt_info += f"~{org_point},{pt_param}"
 
 map_params = {
-    "ll": address_ll,
-    "spn": spn,
+    "ll": f"{ll_sum[0] / 11},{ll_sum[1] / 11}",
+    "spn": f"{ll_sum[0] / 7200},{ll_sum[1] / 7200}",
     "l": "map",
     "pt": pt_info
 }
