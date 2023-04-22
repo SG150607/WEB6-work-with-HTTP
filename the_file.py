@@ -1,7 +1,5 @@
 import requests
 import sys
-from io import BytesIO
-from PIL import Image
 from get_coordinates import get_coordinates
 
 search_api_server = "https://search-maps.yandex.ru/v1/"
