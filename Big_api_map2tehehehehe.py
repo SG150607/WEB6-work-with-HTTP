@@ -25,7 +25,6 @@ if __name__ == '__main__':
             self.pos_change = [0, 0]
 
         def move(self, x, y):
-            print(self.delta, x, y, self.lon, self.lat)
             if x:
                 self.lon = str(float(self.lon) + x)
                 if float(self.lon) > 179:
@@ -38,10 +37,8 @@ if __name__ == '__main__':
                     self.lat = "80"
                 elif float(self.lat) < -80:
                     self.lat = "-80"
-            print(self.delta, x, y, self.lon, self.lat)
-            self.params = {"ll": ",".join([self.lon, self.lat]),
-                           "spn": ",".join([self.delta, self.delta]),
-                           "l": "map"}
+            self.params["ll"] = ",".join([self.lon, self.lat])
+            self.params["spn"] = ",".join([self.delta, self.delta])
             self.response = requests.get(self.api_server, params=self.params)
 
         def show(self):
@@ -65,9 +62,8 @@ if __name__ == '__main__':
                 self.delta = "50"
             elif float(self.delta) < 0.0001:
                 self.delta = "0.0001"
-            self.params = {"ll": ",".join([self.lon, self.lat]),
-                           "spn": ",".join([self.delta, self.delta]),
-                           "l": "map"}
+            self.params["ll"] = ",".join([self.lon, self.lat])
+            self.params["spn"] = ",".join([self.delta, self.delta])
             self.response = requests.get(self.api_server, params=self.params)
 
 
@@ -82,21 +78,25 @@ if __name__ == '__main__':
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_PAGEUP:
                     map_object.zoom_change(-1)  # zoom
-                    map_object.show()
                 if event.key == pygame.K_PAGEDOWN:
                     map_object.zoom_change(1)  # unzoom
-                    map_object.show()
                 if event.key == pygame.K_UP:  # up arrow
                     map_object.move(0, move)
-                    map_object.show()
                 if event.key == pygame.K_DOWN:  # down arrow
                     map_object.move(0, -move)
-                    map_object.show()
                 if event.key == pygame.K_LEFT:  # left arrow
                     map_object.move(-move, 0)
-                    map_object.show()
                 if event.key == pygame.K_RIGHT:  # right arrow
                     map_object.move(move, 0)
-                    map_object.show()
+                if event.key == pygame.K_1:  # 1 - map
+                    map_object.params['l'] = 'map'
+                    map_object.response = requests.get(map_object.api_server, params=map_object.params)
+                if event.key == pygame.K_2:  # 2 - sat
+                    map_object.params['l'] = 'sat'
+                    map_object.response = requests.get(map_object.api_server, params=map_object.params)
+                if event.key == pygame.K_3:  # 3 - both
+                    map_object.params['l'] = 'sat,skl'
+                    map_object.response = requests.get(map_object.api_server, params=map_object.params)
+                map_object.show()
         pygame.display.flip()
     pygame.quit()
