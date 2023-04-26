@@ -12,6 +12,8 @@ def get_coordinates(object):
     if not response:
         pass
     json_response = response.json()
+    if not json_response["response"]["GeoObjectCollection"]["featureMember"]:
+        return 0
     toponym = json_response["response"]["GeoObjectCollection"][
         "featureMember"][0]["GeoObject"]
     toponym_coodrinates = toponym["Point"]["pos"]

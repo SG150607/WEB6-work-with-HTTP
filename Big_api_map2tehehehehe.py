@@ -1,12 +1,62 @@
 import pygame
 import requests
+from get_coordinates import get_coordinates
 
 if __name__ == '__main__':
     pygame.init()
-    pygame.display.set_caption('Большая задача по Maps API. Часть №3')
-    size = width, height = 500, 400
+    pygame.display.set_caption('Большая задача по Maps API')
+    size = width, height = 650, 450
     screen = pygame.display.set_mode(size)
     screen.fill((255, 255, 255))
+    COLOR_INACTIVE = pygame.Color('lightskyblue3')
+    COLOR_ACTIVE = pygame.Color('dodgerblue2')
+    FONT = pygame.font.Font(None, 28)
+
+
+    class InputBox:
+        def __init__(self, x, y, w, h, text=''):
+            self.rect = pygame.Rect(x, y, w, h)
+            self.color = COLOR_INACTIVE
+            self.text = text
+            self.txt_surface = FONT.render(text, True, self.color)
+            self.active = False
+
+        def get_event(self, event):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if self.rect.collidepoint(event.pos):
+                    self.active = not self.active
+                else:
+                    self.active = False
+                if self.active:
+                    self.color = COLOR_ACTIVE
+                else:
+                    self.color = COLOR_INACTIVE
+            if event.type == pygame.KEYDOWN:
+                if self.active:
+                    if event.key == pygame.K_RETURN:
+                        # Передаем координаты указанного объекта
+                        new_coords = get_coordinates(self.text)
+                        if new_coords:
+                            map_object.lon, map_object.lat = new_coords[0], new_coords[1]
+                            map_object.params["ll"] = ",".join(new_coords)
+                            map_object.params["pt"] = f"{map_object.params['ll']},pm2rdl"
+                            map_object.find_object = True
+                        else:
+                            print("ХЗ хде ето ¯\_(ツ)_/¯")
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.text = self.text[:-1]
+                    else:
+                        self.text += event.unicode
+                    self.txt_surface = FONT.render(self.text, True, self.color)
+
+        def update(self):
+            # удлиняем поле если текст слишком длинный
+            width = max(200, self.txt_surface.get_width() + 10)
+            self.rect.w = width
+
+        def draw(self, screen):
+            screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+            pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
     class Map:
@@ -18,11 +68,14 @@ if __name__ == '__main__':
 
             self.params = {"ll": ",".join([self.lon, self.lat]),
                            "spn": ",".join([self.delta, self.delta]),
-                           "l": "map"}
+                           "l": "map",
+                           "size": f"{width},{height}"}
             self.response = requests.get(self.api_server, params=self.params)
 
             self.map_file = "map.png"
             self.pos_change = [0, 0]
+
+            self.find_object = False
 
         def move(self, x, y):
             if x:
@@ -39,12 +92,6 @@ if __name__ == '__main__':
                     self.lat = "-80"
             self.params["ll"] = ",".join([self.lon, self.lat])
             self.params["spn"] = ",".join([self.delta, self.delta])
-            self.response = requests.get(self.api_server, params=self.params)
-
-        def show(self):
-            with open(self.map_file, "wb") as file:
-                file.write(self.response.content)
-            screen.blit(pygame.image.load(self.map_file), (0, 0))
 
         def zoom_change(self, value):
             global move
@@ -64,12 +111,19 @@ if __name__ == '__main__':
                 self.delta = "0.0001"
             self.params["ll"] = ",".join([self.lon, self.lat])
             self.params["spn"] = ",".join([self.delta, self.delta])
-            self.response = requests.get(self.api_server, params=self.params)
+            print(self.params)
+
+        def show(self):
+            map_object.response = requests.get(map_object.api_server, params=map_object.params)
+            with open(self.map_file, "wb") as file:
+                file.write(self.response.content)
+            screen.blit(pygame.image.load(self.map_file), (0, 0))
 
 
     running = True
     map_object = Map()
     map_object.show()
+    input_box = InputBox(20, 20, 200, 30)
     move = 0.001
     while running:
         for event in pygame.event.get():
@@ -88,15 +142,18 @@ if __name__ == '__main__':
                     map_object.move(-move, 0)
                 if event.key == pygame.K_RIGHT:  # right arrow
                     map_object.move(move, 0)
-                if event.key == pygame.K_1:  # 1 - map
+                if event.key == pygame.K_m:  # m - map
                     map_object.params['l'] = 'map'
                     map_object.response = requests.get(map_object.api_server, params=map_object.params)
-                if event.key == pygame.K_2:  # 2 - sat
+                if event.key == pygame.K_s:  # s - sat
                     map_object.params['l'] = 'sat'
                     map_object.response = requests.get(map_object.api_server, params=map_object.params)
-                if event.key == pygame.K_3:  # 3 - both
+                if event.key == pygame.K_b:  # b - both
                     map_object.params['l'] = 'sat,skl'
                     map_object.response = requests.get(map_object.api_server, params=map_object.params)
-                map_object.show()
+            map_object.show()
+            input_box.get_event(event)
+            input_box.update()
+            input_box.draw(screen)
         pygame.display.flip()
     pygame.quit()
