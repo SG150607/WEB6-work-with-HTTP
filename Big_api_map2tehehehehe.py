@@ -18,18 +18,20 @@ if __name__ == '__main__':
             self.rect = pygame.Rect(x, y, w, h)
             self.color = COLOR_INACTIVE
             self.text = text
-            self.txt_surface = FONT.render(text, True, self.color)
+            self.text_surface = FONT.render(text, True, self.color)
 
         def get_event(self, event):
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
                 if "pt" in map_object.params.keys():
                     map_object.params.pop("pt")
                 # следующие 2 строчки удаляют содержимое запроса (избавьтесь от них по желаиню:3)
                 input_box.text = ''
-                input_box.txt_surface = FONT.render(input_box.text, True, input_box.color)
+                input_box.text_surface = FONT.render(input_box.text, True, input_box.color)
+                info_pole.text = ''
+                info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
 
         def draw(self, screen):
-            screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+            screen.blit(self.text_surface, (self.rect.x + 5, self.rect.y + 5))
             pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
@@ -38,7 +40,7 @@ if __name__ == '__main__':
             self.rect = pygame.Rect(x, y, w, h)
             self.color = COLOR_INACTIVE
             self.text = text
-            self.txt_surface = FONT.render(text, True, self.color)
+            self.text_surface = FONT.render(text, True, self.color)
             self.active = False
 
         def get_event(self, event):
@@ -61,21 +63,57 @@ if __name__ == '__main__':
                             map_object.params["ll"] = ",".join(new_coords)
                             map_object.params["pt"] = f"{map_object.params['ll']},pm2rdl"
                             map_object.find_object = True
+
+                            search_api_server = "https://search-maps.yandex.ru/v1/"
+                            api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
+                            search_params = {
+                                "apikey": api_key,
+                                "text": input_box.text,
+                                "lang": "ru_RU",
+                                "ll": map_object.params["ll"],
+                                "spn": map_object.params["spn"]
+                            }
+                            the_response = requests.get(search_api_server, params=search_params)
+                            the_place = the_response.json()["features"][0]["properties"]
+
+                            if "GeocoderMetaData" not in the_place:  # организация
+                                info_pole.text = the_place["CompanyMetaData"]["address"]
+                            else:
+                                info_pole.text = the_place["GeocoderMetaData"]["text"]
+                            info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
                         else:
-                            print("ХЗ хде ето ¯\_(ツ)_/¯")
+                            info_pole.text = "ХЗ хде ето ¯\_(ツ)_/¯"
+                            info_pole.text_surface = info_pole.text
                     elif event.key == pygame.K_BACKSPACE:
                         self.text = self.text[:-1]
                     else:
                         self.text += event.unicode
-                    self.txt_surface = FONT.render(self.text, True, self.color)
+                    self.text_surface = FONT.render(self.text, True, self.color)
 
         def update(self):
             # удлиняем поле если текст слишком длинный
-            width = max(200, self.txt_surface.get_width() + 10)
+            width = max(200, self.text_surface.get_width() + 10)
             self.rect.w = width
 
         def draw(self, screen):
-            screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+            screen.blit(self.text_surface, (self.rect.x + 5, self.rect.y + 5))
+            pygame.draw.rect(screen, self.color, self.rect, 2)
+
+
+    class InfoPole:
+        def __init__(self, x, y, w, h, text=''):
+            self.rect = pygame.Rect(x, y, w, h)
+            self.color = COLOR_INACTIVE
+            self.text = text
+            self.text_surface = FONT.render(text, True, self.color)
+
+        def update(self):
+            # удлиняем поле если текст слишком длинный
+            width = max(200, self.text_surface.get_width() + 10)
+            self.rect.w = width
+
+        def draw(self, screen):
+            screen.blit(self.text_surface, (self.rect.x + 5, self.rect.y + 5))
             pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
@@ -143,6 +181,7 @@ if __name__ == '__main__':
     map_object = Map()
     map_object.show()
     input_box = InputBox(52, 20, 200, 30)
+    info_pole = InfoPole(15, height - 45, 200, 30)
     button = Button(15, 20, 30, 30)
     move = 0.001
     while running:
@@ -177,5 +216,7 @@ if __name__ == '__main__':
             input_box.draw(screen)
             button.get_event(event)
             button.draw(screen)
+            info_pole.update()
+            info_pole.draw(screen)
         pygame.display.flip()
     pygame.quit()
