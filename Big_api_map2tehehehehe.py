@@ -13,6 +13,26 @@ if __name__ == '__main__':
     FONT = pygame.font.Font(None, 28)
 
 
+    class Button:
+        def __init__(self, x, y, w, h, text="' '"):
+            self.rect = pygame.Rect(x, y, w, h)
+            self.color = COLOR_INACTIVE
+            self.text = text
+            self.txt_surface = FONT.render(text, True, self.color)
+
+        def get_event(self, event):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if "pt" in map_object.params.keys():
+                    map_object.params.pop("pt")
+                # следующие 2 строчки удаляют содержимое запроса (избавьтесь от них по желаиню:3)
+                input_box.text = ''
+                input_box.txt_surface = FONT.render(input_box.text, True, input_box.color)
+
+        def draw(self, screen):
+            screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+            pygame.draw.rect(screen, self.color, self.rect, 2)
+
+
     class InputBox:
         def __init__(self, x, y, w, h, text=''):
             self.rect = pygame.Rect(x, y, w, h)
@@ -111,7 +131,6 @@ if __name__ == '__main__':
                 self.delta = "0.0001"
             self.params["ll"] = ",".join([self.lon, self.lat])
             self.params["spn"] = ",".join([self.delta, self.delta])
-            print(self.params)
 
         def show(self):
             map_object.response = requests.get(map_object.api_server, params=map_object.params)
@@ -123,7 +142,8 @@ if __name__ == '__main__':
     running = True
     map_object = Map()
     map_object.show()
-    input_box = InputBox(20, 20, 200, 30)
+    input_box = InputBox(52, 20, 200, 30)
+    button = Button(15, 20, 30, 30)
     move = 0.001
     while running:
         for event in pygame.event.get():
@@ -155,5 +175,7 @@ if __name__ == '__main__':
             input_box.get_event(event)
             input_box.update()
             input_box.draw(screen)
+            button.get_event(event)
+            button.draw(screen)
         pygame.display.flip()
     pygame.quit()
