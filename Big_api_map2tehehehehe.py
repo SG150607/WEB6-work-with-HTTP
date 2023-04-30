@@ -13,8 +13,12 @@ if __name__ == '__main__':
     FONT = pygame.font.Font(None, 28)
 
 
+    def ffont(font_size):
+        return pygame.font.Font(None, font_size)
+
+
     class Button:
-        def __init__(self, x, y, w, h, text="' '"):
+        def __init__(self, x, y, w, h, text="empty"):
             self.rect = pygame.Rect(x, y, w, h)
             self.color = COLOR_INACTIVE
             self.text = text
@@ -25,14 +29,47 @@ if __name__ == '__main__':
                 if "pt" in map_object.params.keys():
                     map_object.params.pop("pt")
                 # следующие 2 строчки удаляют содержимое запроса (избавьтесь от них по желаиню:3)
-                input_box.text = ''
-                input_box.text_surface = FONT.render(input_box.text, True, input_box.color)
+                # input_box.text = ''
+                # input_box.text_surface = FONT.render(input_box.text, True, input_box.color)
                 info_pole.text = ''
                 info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
+                mail_button.postal_code_data = ''
 
         def draw(self, screen):
             screen.blit(self.text_surface, (self.rect.x + 5, self.rect.y + 5))
             pygame.draw.rect(screen, self.color, self.rect, 2)
+
+
+    class MailButton(Button):
+        def __init__(self, x, y, w, h, text="mail"):
+            super().__init__(x, y, w, h, text)
+            self.active = False
+            self.postal_code_data = ''
+
+        def get_event(self, event):
+            if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
+                self.active = not self.active
+                if self.active:
+                    self.color = COLOR_ACTIVE
+                else:
+                    self.color = COLOR_INACTIVE
+                if self.active:
+                    geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
+                    geocoder_params = {
+                        "apikey": "40d1649f-0493-4b70-98ba-98533de7710b",
+                        "geocode": input_box.text,
+                        "format": "json"}
+                    the_response = requests.get(geocoder_api_server, params=geocoder_params)
+                    the_place = the_response.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"][
+                        "metaDataProperty"]["GeocoderMetaData"]["Address"]
+                    if "postal_code" in the_place:
+                        self.postal_code_data = the_place["postal_code"]
+                    else:
+                        self.postal_code_data = " без почтового индекса"
+
+        def update(self):
+            if not info_pole.text:
+                self.postal_code_data = ''
 
 
     class InputBox:
@@ -56,6 +93,7 @@ if __name__ == '__main__':
             if event.type == pygame.KEYDOWN:
                 if self.active:
                     if event.key == pygame.K_RETURN:
+                        info_pole.font_size = 28
                         # Передаем координаты указанного объекта
                         new_coords = get_coordinates(self.text)
                         if new_coords:
@@ -80,10 +118,10 @@ if __name__ == '__main__':
                                 info_pole.text = the_place["CompanyMetaData"]["address"]
                             else:
                                 info_pole.text = the_place["GeocoderMetaData"]["text"]
-                            info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
                         else:
                             info_pole.text = "ХЗ хде ето ¯\_(0-0)_/¯"
-                            info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
+                        info_pole.text_surface = FONT.render(info_pole.text + mail_button.postal_code_data, True,
+                                                             info_pole.color)
                     elif event.key == pygame.K_BACKSPACE:
                         self.text = self.text[:-1]
                     else:
@@ -105,12 +143,22 @@ if __name__ == '__main__':
             self.rect = pygame.Rect(x, y, w, h)
             self.color = COLOR_INACTIVE
             self.text = text
-            self.text_surface = FONT.render(text, True, self.color)
+            self.font_size = 28
+            self.text_surface = ffont(self.font_size).render(text, True, self.color)
 
         def update(self):
             # удлиняем поле если текст слишком длинный
             width = max(200, self.text_surface.get_width() + 10)
-            self.rect.w = width
+            if width + self.rect.x >= size[0]:
+                self.rect.w = size[0] - self.rect.x * 2
+                self.font_size -= 1
+            else:
+                self.rect.w = width
+            if mail_button.active:
+                self.text_surface = ffont(self.font_size).render(self.text + mail_button.postal_code_data, True,
+                                                                 self.color)
+            else:
+                self.text_surface = ffont(self.font_size).render(self.text, True, self.color)
 
         def draw(self, screen):
             screen.blit(self.text_surface, (self.rect.x + 5, self.rect.y + 5))
@@ -180,9 +228,10 @@ if __name__ == '__main__':
     running = True
     map_object = Map()
     map_object.show()
-    input_box = InputBox(52, 20, 200, 30)
-    info_pole = InfoPole(15, height - 45, 200, 30)
-    button = Button(15, 20, 30, 30)
+    input_box = InputBox(140, 20, 200, 30)
+    info_pole = InfoPole(15, height - 53, 200, 30)
+    button = Button(15, 20, 67, 30)
+    mail_button = MailButton(85, 20, 50, 30)
     move = 0.001
     while running:
         for event in pygame.event.get():
@@ -216,6 +265,9 @@ if __name__ == '__main__':
             input_box.draw(screen)
             button.get_event(event)
             button.draw(screen)
+            mail_button.get_event(event)
+            mail_button.update()
+            mail_button.draw(screen)
             info_pole.update()
             info_pole.draw(screen)
         pygame.display.flip()
