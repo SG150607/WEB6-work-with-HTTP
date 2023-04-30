@@ -82,8 +82,8 @@ if __name__ == '__main__':
                                 info_pole.text = the_place["GeocoderMetaData"]["text"]
                             info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
                         else:
-                            info_pole.text = "ХЗ хде ето ¯\_(ツ)_/¯"
-                            info_pole.text_surface = info_pole.text
+                            info_pole.text = "ХЗ хде ето ¯\_(0-0)_/¯"
+                            info_pole.text_surface = FONT.render(info_pole.text, True, info_pole.color)
                     elif event.key == pygame.K_BACKSPACE:
                         self.text = self.text[:-1]
                     else:
